@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
  
 DATABASE_URL = (
-    "mssql+pyodbc://localhost/ETLSAMPLE"
+    "mssql+pyodbc://localhost/Project"
     "?driver=ODBC+Driver+17+for+SQL+Server"
     "&trusted_connection=yes"
 )
