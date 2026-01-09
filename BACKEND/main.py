@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List, Union
+from typing import List, Optional, Union
  
 from database import SessionLocal
 from models import (
@@ -9,14 +9,14 @@ from models import (
     EmployeeReport,
     BankAccountSummary,
     LoanDistribution,
-    TSTdsLogTdDepMast          # ✅ ADDED
+    TSTdsLogTdDepMast          
 )
 from schemas import (
     SalesReportSchema,
     EmployeeReportSchema,
     BankAccountSummarySchema,
     LoanDistributionSchema,
-    TSTdsLogTdDepMastSchema   # ✅ ADDED
+    TSTdsLogTdDepMastSchema   
 )
  
 app = FastAPI(title="Report Service")
@@ -53,6 +53,11 @@ def generate_report(
         ...,
         description="sales | employee | bank | loan | tds"
     ),
+    
+    account_no: Optional[str] = Query(
+        None,
+        description="Filter by account number"
+    ),
     db: Session = Depends(get_db)
 ):
     if table == "sales":
@@ -67,9 +72,17 @@ def generate_report(
     elif table == "loan":
         return db.query(LoanDistribution).all()
  
-    elif table == "tds":  # ✅ NEW
-        return db.query(TSTdsLogTdDepMast).all()
+    elif table == "tds":
+        # ❌ DO NOT RETURN ALL RECORDS
+        if not account_no:
+            return []   # ✅ Prevent loading 50k rows
  
+        # ✅ FILTER BY ACCOUNT NUMBER
+        return (
+            db.query(TSTdsLogTdDepMast)
+            .filter(TSTdsLogTdDepMast.COD_ACCT_NO == account_no)
+            .all()
+        )
     else:
         raise HTTPException(
             status_code=400,

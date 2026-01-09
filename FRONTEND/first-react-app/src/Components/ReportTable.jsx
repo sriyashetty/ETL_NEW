@@ -5,6 +5,7 @@ import LoanBarChart from "./LoanBarChart";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import * as XLSX from "xlsx";
+import FilterPanel from "./FilterPanel";
 
 export default function ReportTable({ reportType }) {
     const [rows, setRows] = useState([]);
@@ -12,10 +13,19 @@ export default function ReportTable({ reportType }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [accountNo, setAccountNo] = useState("");
+    const [isSearching, setIsSearching] = useState(false);
 
     const rowsPerPage = 10;
 
     useEffect(() => {
+
+        if (reportType === "tds") {
+            setRows([]);
+            setAccountNo("");
+            return;
+        }
+
         axios
             .get(`http://127.0.0.1:8000/generate-report?table=${reportType}`)
             .then(res => {
@@ -52,7 +62,7 @@ export default function ReportTable({ reportType }) {
         doc.save(`${reportType}_report.pdf`);
     };
 
-    if (!rows.length) {
+    if (!rows.length && reportType !== "tds") {
         return <div className="report-area" style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>No data available</div>;
     }
 
@@ -81,7 +91,32 @@ export default function ReportTable({ reportType }) {
         return matchesSearch && matchesDate;
     });
 
-    const columns = Object.keys(rows[0]);
+    const searchTdsByAccount = async () => {
+        if (!accountNo.trim()) {
+            alert("Please enter an account number.");
+            return;
+        }
+        setIsSearching(true);
+        try {
+            const res = await axios.get(
+                "http://127.0.0.1:8000/generate-report",
+                {
+                    params: {
+                        table: "tds",
+                        account_no: accountNo
+                }
+            }
+        );
+        setRows(res.data);
+        setCurrentPage(1);
+        } catch (error) {
+            setRows([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const columns = rows.length ? Object.keys(rows[0]) : [];
     const indexOfLastRow = currentPage * rowsPerPage;
     const indexOfFirstRow = indexOfLastRow - rowsPerPage;
     const currentRows = filteredRows.slice(indexOfFirstRow, indexOfLastRow);
@@ -89,8 +124,16 @@ export default function ReportTable({ reportType }) {
 
     return (
         <div className="report-area" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-
-            {!isChart && (
+            {reportType === "tds" && (
+                <FilterPanel
+                    value={accountNo}
+                    onChange={setAccountNo}
+                    onSearch={searchTdsByAccount}
+                    loading={isSearching}
+                    placeholder="Enter Account Number"
+                />
+                )}
+            {!isChart && reportType !== "tds" && (
                 <div style={{ display: 'flex', padding: '16px 24px', gap: '15px', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ position: 'relative', flex: 2 }}>
                         <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }}>🔍</span>
@@ -125,10 +168,10 @@ export default function ReportTable({ reportType }) {
                 {reportType === "bank" ? <BankPieChart data={rows} /> :
                     reportType === "loan" ? <LoanBarChart data={rows} /> : (
                         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
-                            <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 10 }}>
+                            <thead style={{ position: 'sticky', top: 0, background: '#4b82b9ff', zIndex: 10 }}>
                                 <tr>
                                     {columns.map(col => (
-                                        <th key={col} style={{ padding: '14px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', borderBottom: '2px solid #f1f5f9' }}>
+                                        <th key={col} style={{ padding: '14px 24px', textAlign: 'left', fontSize: '12px', fontWeight: '700', color: '#ffffffff', textTransform: 'uppercase', borderBottom: '2px solid #f1f5f9' }}>
                                             {formatHeader(col)}
                                         </th>
                                     ))}
