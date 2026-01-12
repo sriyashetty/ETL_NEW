@@ -13,16 +13,39 @@ export default function ReportTable({ reportType }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
-    const [accountNo, setAccountNo] = useState("");
     const [isSearching, setIsSearching] = useState(false);
 
+    const [tdsFilters, setTdsFilters] = useState({
+        account_no: "",
+        customer_id: "",
+        branch_code: "",
+        product_code: ""
+        });
+
     const rowsPerPage = 10;
+
+    const clearTdsFilters = () => {
+        setTdsFilters({
+            account_no: "",
+            customer_id: "",
+            branch_code: "",
+            product_code: ""
+        });
+        setRows([]);
+        setCurrentPage(1);
+        };
+
 
     useEffect(() => {
 
         if (reportType === "tds") {
             setRows([]);
-            setAccountNo("");
+            setTdsFilters({
+            account_no: "",
+            customer_id: "",
+            branch_code: "",
+            product_code: ""
+            });
             return;
         }
 
@@ -91,30 +114,41 @@ export default function ReportTable({ reportType }) {
         return matchesSearch && matchesDate;
     });
 
-    const searchTdsByAccount = async () => {
-        if (!accountNo.trim()) {
-            alert("Please enter an account number.");
-            return;
+    const searchTds = async () => {
+  if (Object.values(tdsFilters).every(v => !v.trim())) {
+    alert("Please enter at least one filter");
+    return;
+  }
+
+  setIsSearching(true);
+
+  try {
+    const payload = Object.fromEntries(
+      Object.entries(tdsFilters).filter(
+        ([_, value]) => value && value.trim() !== ""
+      )
+    );
+
+    const res = await axios.get(
+      "http://127.0.0.1:8000/generate-report",
+      {
+        params: {
+          table: "tds",
+          ...payload
         }
-        setIsSearching(true);
-        try {
-            const res = await axios.get(
-                "http://127.0.0.1:8000/generate-report",
-                {
-                    params: {
-                        table: "tds",
-                        account_no: accountNo
-                }
-            }
-        );
-        setRows(res.data);
-        setCurrentPage(1);
-        } catch (error) {
-            setRows([]);
-        } finally {
-            setIsSearching(false);
-        }
-    };
+      }
+    );
+
+    setRows(res.data);
+    setCurrentPage(1);
+  } catch (err) {
+    console.error(err.response?.data || err);
+    setRows([]);
+  } finally {
+    setIsSearching(false);
+  }
+};
+
 
     const columns = rows.length ? Object.keys(rows[0]) : [];
     const indexOfLastRow = currentPage * rowsPerPage;
@@ -126,13 +160,14 @@ export default function ReportTable({ reportType }) {
         <div className="report-area" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
             {reportType === "tds" && (
                 <FilterPanel
-                    value={accountNo}
-                    onChange={setAccountNo}
-                    onSearch={searchTdsByAccount}
+                    filters={tdsFilters}
+                    onChange={setTdsFilters}
+                    onSearch={searchTds}
+                    onClear={clearTdsFilters}
                     loading={isSearching}
-                    placeholder="Enter Account Number"
                 />
                 )}
+
             {!isChart && reportType !== "tds" && (
                 <div style={{ display: 'flex', padding: '16px 24px', gap: '15px', alignItems: 'center', borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ position: 'relative', flex: 2 }}>

@@ -54,9 +54,9 @@ def generate_report(
 
     # TDS Filters
     account_no: Optional[str] = Query(None, description="Account number"),
-    customer_id: Optional[int] = Query(None, description="Customer ID"),
-    branch_code: Optional[int] = Query(None, description="Branch code"),
-    product_code: Optional[int] = Query(None, description="Product code"),
+    customer_id: Optional[str] = Query(None, description="Customer ID"),
+    branch_code: Optional[str] = Query(None, description="Branch code"),
+    product_code: Optional[str] = Query(None, description="Product code"),
 
     db: Session = Depends(get_db)
 ):
