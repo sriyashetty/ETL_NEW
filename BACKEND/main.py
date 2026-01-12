@@ -73,11 +73,11 @@ def generate_report(
         return db.query(LoanDistribution).all()
  
     elif table == "tds":
-        # ❌ DO NOT RETURN ALL RECORDS
+        # DO NOT RETURN ALL RECORDS
         if not account_no:
-            return []   # ✅ Prevent loading 50k rows
+            return []   # Prevent loading 50k rows
  
-        # ✅ FILTER BY ACCOUNT NUMBER
+        # FILTER BY ACCOUNT NUMBER
         return (
             db.query(TSTdsLogTdDepMast)
             .filter(TSTdsLogTdDepMast.COD_ACCT_NO == account_no)
